@@ -1,0 +1,51 @@
+vector npos = point(1, "P", @ptnum % npoints(1));
+
+vector min, max, nmin, nmax;
+getbbox(0, min, max);
+getbbox(1, nmin, nmax);
+
+float gradrange = 140 * chf("morphing_grad_range");
+float offset = fit(@P.y, max.y, min.y, 1, gradrange);
+offset += rand(@P) * chi("rand_offset");
+
+float noffset = fit(npos.y, nmax.y, nmin.y, 1, gradrange);
+noffset += rand(npos) * chi("rand_offset");
+
+
+
+float f = fit(@Frame, 110, 180 + noffset - gradrange - chi("rand_offset"), 0.0, 1.0);
+f = chramp("ramp", f);
+
+
+vector cen = getbbox_center(0);
+vector ncen = getbbox_center(1);
+
+vector cpos = @P;
+vector ncpos = npos;
+
+float ang = $PI * 2.0 * f * chi("rot_cycle");
+float addang = sin(f * $PI) * rand(@P) * radians(chf("add_rand_ang"));
+
+matrix mat = ident();
+
+vector axis = set(0,1,0) + noise(@P * 0.5) * chf("axis_turb");
+axis -= set(0.5, 0.5, 0.5);
+axis = normalize(axis);
+
+
+rotate(mat, ang + addang, axis);
+@P *= mat;
+npos *= mat;
+
+float sf = sin(f * $PI);
+
+float noiseval = (noise(@P + cpos * 10.0)-0.5);
+vector dir = normalize(@P - cen) * sf * noiseval;
+
+@P += dir;
+float nnoiseval = (noise(npos + ncpos * 10.0)-0.5);
+vector ndir = normalize(npos - ncen) * sf * noiseval;
+npos += ndir;
+
+@P = lerp(@P, npos, f);
+
